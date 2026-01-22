@@ -1,0 +1,182 @@
+-- Auto Spell GUI for Roblox Spelling Race
+-- Automatically types words for you
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Spelling Race Auto Spell", "DarkTheme")
+
+-- Variables
+local autoSpellEnabled = false
+local typeDelay = 0.05
+local humanTyping = true
+local instantType = false
+
+-- Services
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Helper Functions
+local function findWordDisplay()
+    -- Try to find the word display in common locations
+    for _, gui in pairs(PlayerGui:GetDescendants()) do
+        if gui:IsA("TextLabel") or gui:IsA("TextBox") then
+            local text = gui.Text
+            if text and #text > 0 and not text:match("%d") and text ~= "" then
+                -- Check if it looks like a word to spell
+                if text:match("^[A-Za-z]+$") and #text >= 3 then
+                    return text
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function findTextBox()
+    -- Find the input textbox
+    for _, gui in pairs(PlayerGui:GetDescendants()) do
+        if gui:IsA("TextBox") and gui.ClearTextOnFocus == false then
+            return gui
+        end
+    end
+    return nil
+end
+
+local function typeWord(word, textbox)
+    if not word or not textbox then return end
+    
+    if instantType then
+        -- Instant typing
+        textbox.Text = word
+        wait(0.1)
+        -- Simulate pressing Enter
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+        game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+    else
+        -- Human-like typing
+        textbox.Text = ""
+        for i = 1, #word do
+            local char = word:sub(i, i)
+            textbox.Text = textbox.Text .. char
+            
+            if humanTyping then
+                -- Variable delay for human-like typing
+                local randomDelay = typeDelay + (math.random(-20, 20) / 1000)
+                wait(math.max(0.01, randomDelay))
+            else
+                wait(typeDelay)
+            end
+        end
+        
+        wait(0.1)
+        -- Simulate pressing Enter
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+        game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+    end
+end
+
+-- Main Auto Spell Loop
+local lastWord = ""
+spawn(function()
+    while wait(0.5) do
+        if autoSpellEnabled then
+            local word = findWordDisplay()
+            local textbox = findTextBox()
+            
+            if word and textbox and word ~= lastWord then
+                lastWord = word
+                typeWord(word, textbox)
+                wait(0.5)
+            end
+        end
+    end
+end)
+
+-- GUI Setup
+local MainTab = Window:NewTab("Auto Spell")
+local SettingsTab = Window:NewTab("Settings")
+local InfoTab = Window:NewTab("Info")
+
+-- Main Section
+local MainSection = MainTab:NewSection("Controls")
+
+MainSection:NewToggle("Enable Auto Spell", "Automatically type words", function(state)
+    autoSpellEnabled = state
+    if state then
+        Library:Notification("Auto Spell ON", "Now typing words automatically", 3)
+    else
+        Library:Notification("Auto Spell OFF", "Stopped typing automatically", 3)
+        lastWord = ""
+    end
+end)
+
+MainSection:NewToggle("Instant Type", "Type instantly (obvious)", function(state)
+    instantType = state
+end)
+
+MainSection:NewButton("Type Current Word", "Manually type the current word", function()
+    local word = findWordDisplay()
+    local textbox = findTextBox()
+    
+    if word and textbox then
+        typeWord(word, textbox)
+        Library:Notification("Typed", "Word: " .. word, 2)
+    else
+        Library:Notification("Error", "Could not find word or textbox", 2)
+    end
+end)
+
+-- Settings Section
+local SettingsSection = SettingsTab:NewSection("Typing Settings")
+
+SettingsSection:NewToggle("Human-like Typing", "Add random delays", function(state)
+    humanTyping = state
+end)
+
+SettingsSection:NewSlider("Type Speed", "Delay between characters (seconds)", 0.5, 0.01, function(s)
+    typeDelay = s
+end)
+
+SettingsSection:NewLabel("Lower = Faster typing")
+SettingsSection:NewLabel("Recommended: 0.05 - 0.15 for human-like")
+
+-- Debug Section
+local DebugSection = SettingsTab:NewSection("Debug")
+
+DebugSection:NewButton("Find Current Word", "Show detected word", function()
+    local word = findWordDisplay()
+    if word then
+        Library:Notification("Found Word", word, 3)
+    else
+        Library:Notification("No Word", "Could not detect word", 3)
+    end
+end)
+
+DebugSection:NewButton("Test TextBox", "Check if input detected", function()
+    local textbox = findTextBox()
+    if textbox then
+        Library:Notification("TextBox Found", "Input detected successfully", 3)
+    else
+        Library:Notification("No TextBox", "Could not find input field", 3)
+    end
+end)
+
+-- Info Section
+local InfoSection = InfoTab:NewSection("How to Use")
+
+InfoSection:NewLabel("1. Join a Spelling Race game")
+InfoSection:NewLabel("2. Wait for a word to appear")
+InfoSection:NewLabel("3. Toggle 'Enable Auto Spell'")
+InfoSection:NewLabel("4. Adjust speed if needed")
+InfoSection:NewLabel("")
+InfoSection:NewLabel("Tips:")
+InfoSection:NewLabel("- Use Human-like Typing to avoid detection")
+InfoSection:NewLabel("- Lower speed = faster typing")
+InfoSection:NewLabel("- Instant Type is most obvious")
+
+local StatusSection = InfoTab:NewSection("Status")
+
+StatusSection:NewLabel("Script loaded successfully!")
+StatusSection:NewLabel("Made for Spelling Race")
+
+print("Spelling Race Auto Spell GUI Loaded!")
